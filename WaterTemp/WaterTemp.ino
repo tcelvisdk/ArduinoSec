@@ -11,6 +11,7 @@ DallasTemperature sensors(&oneWire);
  float Fahrenheit=0;
  void tempsensorSetup()
  { sensors.begin();
+ //
  
   }
 float 
