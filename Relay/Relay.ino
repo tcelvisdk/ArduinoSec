@@ -21,6 +21,7 @@ Serial.begin(9600);
    delay(5000);                       // Wait 5 seconds
 
    digitalWrite(RELAY1, 1);           // Turns Relay Off
+   
    Serial.println("Light OFF");
    delay(5000);
    
