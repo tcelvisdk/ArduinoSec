@@ -16,6 +16,7 @@ Serial.begin(9600);
 {
 
    digitalWrite(RELAY1, 0);           // Turns ON Relays 1
+   
    Serial.println("Light ON");
    delay(5000);                       // Wait 2 seconds
 
