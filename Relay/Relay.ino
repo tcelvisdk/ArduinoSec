@@ -1,28 +1,21 @@
-                       
+#include "library\Relay.h"                    
+#define RELAY  7  
 
-#define RELAY1  7                        
 void setup()
-
-{    
-
-
-Serial.begin(9600);
-  pinMode(RELAY1, OUTPUT);       
-
+{
+  Serial.begin(9600);
+  RelayInitialize(RELAY);
 }
 
-  void loop()
-
+void loop()
 {
+  RelayOn();            // Turns Relays On
 
-   digitalWrite(RELAY1, 0);           // Turns ON Relays 1
-   
-   Serial.println("Light ON");
-   delay(5000);                       // Wait 5 seconds
+  Serial.println("Light ON");
+  delay(5000);                    // Wait 5 seconds
 
-   digitalWrite(RELAY1, 1);           // Turns Relay Off
-   
-   Serial.println("Light OFF");
-   delay(5000);
-   
+  RelayOff();           // Turns Relay Off
+
+  Serial.println("Light OFF");
+  delay(5000);
 }
