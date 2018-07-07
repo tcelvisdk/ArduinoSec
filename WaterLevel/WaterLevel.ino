@@ -1,5 +1,14 @@
-#include "library\Waterlevel.h"
-#define WATERSENSOR 0
+#define TESTMODE
+
+#ifdef TESTMODE
+#include "library\WaterlevelFake.h"
+#endif
+
+#ifndef TESTMODE
+#include "library\WaterlevelFake.h"
+#endif
+
+#define WATERSENSOR 0 //Analog 0
 
 void setup()
 {
