@@ -87,11 +87,12 @@ void loop()
       if  ( bWriteState == HIGH)
       {
         String inputData = Serial.readString();
-        delay(1000);
+
         WriteString(_constNowStoring + inputData);
         eepromWriteString(addr, inputData);
+        delay(1000);
         WriteString("Data stored");
-        
+
       }
     }
   }
