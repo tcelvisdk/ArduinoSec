@@ -146,8 +146,12 @@ int getNumber(unsigned long value)
 		break;
 	}
 }
+void dummy(int x)
+{
+	;
+}
 
-int ReadIRNumber(int digits, void(*f)(int))
+int ReadIRNumber(int digits, void(*f)(int) = dummy)
 {
 	int toBeReturned = 0;
 	int returnDigit = 0;

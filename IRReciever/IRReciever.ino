@@ -14,8 +14,9 @@ void setup()
 }
 
 void loop() {
+  
   Serial.println(ReadIRNumber(3, writeNumber));
-
+  //Serial.println(ReadIRNumber(3));
   //  if (irrecv.decode(&results)) {
   //    Serial.println(results.value, HEX);
   //    irrecv.resume();
