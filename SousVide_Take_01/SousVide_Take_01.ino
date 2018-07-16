@@ -1,4 +1,6 @@
 
+
+
 #include "library\SerialDisplay.h"
 #include "library\Persist.h"
 #include "TimerOne.h"
@@ -108,7 +110,9 @@ void DisplayRoutine()
     Serial.print( currentDisplay);
     int dispPtr = operationDisplays[currentDisplay];
     Serial.print( " dispPtr ");
-    Serial.print( dispPtr);
+    Serial.println( dispPtr);
+    Serial.print( "displays[dispPtr] ");
+    Serial.print( displays[dispPtr]);
     String toDisplay(displays[dispPtr]);
     Serial.print( "in Print: toDisplay ");
     Serial.println(toDisplay);
@@ -148,12 +152,12 @@ void setup()
   {
     SousVideDisplayUpdate(i, 0);
   }
-  //	WriteString("Hu hej hvor det går");
+  	WriteString("Hu hej hvor det går");
   //
   //	//Setup Timer
   //// Timer1.initialize(10000000); // set a timer of length 100000 microseconds
   ////
-  Timer1.attachInterrupt(DisplayRoutine); // attach the service routine here
+  //Timer1.attachInterrupt(DisplayRoutine); // attach the service routine here
   //
   //	//Set up remote control
   //	//Set up thermometer
@@ -208,6 +212,11 @@ void loop() {
         break;
       case 2:  // Operation
         setGreen();
+        for (int i = 0; i < 5; i++)
+{
+DisplayRoutine();
+delay(5);
+}
         break;
       case 3: //
         setBlue();
