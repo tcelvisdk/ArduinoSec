@@ -165,7 +165,7 @@ int ReadIRNumber(int digits, void(*f)(int) = dummy)
 
 		if (irrecv.decode(&results))
 		{
-
+			Serial.println("something");
 			valueRead = results.value;
 			irrecv.resume();
 			if (isNumber(valueRead))

@@ -1,9 +1,11 @@
-
-
-
 #include "library\SerialDisplay.h"
 #include "library\Persist.h"
-#include "TimerOne.h"
+#include "library\Timer.h"
+#include "library\Clock.h"
+//#include "library\Waterlevel.h"
+//#include "library\Temperature.h"
+#include "library\WaterlevelFake.h"
+#include "library\TemperatureFake.h"
 
 // Const IO
 static int redPort = 3;
@@ -13,10 +15,10 @@ static  int btPressPort = 13;
 static int stateButton = 2;
 
 // control vars
-int programState = 1;
+int programState = 2;
 int bStateState;
 bool lastReadHigh = false;
-bool doStuff;
+bool doStuff = true;
 int currentDisplay = 0;
 int showCount;
 int showDelay = 5;
@@ -25,62 +27,165 @@ int operationDisplays[] = { 0, 1, 2 };
 // function vars
 
 bool heating = false;
+bool displayStuff = false;
+bool displayActive = true;
+
+bool readClock = false;
+bool readWaterlevel = false;
+bool readTemperature = false;
+
 int SelectedTemp;
 int SelectedDuration;
-int StartHour;
-int StartMinutes;
-int StartDD;
-int StartMO;
+
+int startHour;
+int startMinutes;
+int startDD;
+int startMO;
 int StartHHYY;
 
-int DoneDuration;
-int DoneHour;
-int DoneMinutes;
+int doneDuration;
+int doneHour;
+int doneMinutes;
 
-int CurrentTemp;
-int CurrentHour;
-int CurrentMinutes;
-int CurrentDD;
-int CurrentMO;
-int CurrentHHYY;
+int currentTemp;
+
+dateTime now;
 
 char displays[15][33];
 
 void SousVideDisplayUpdate(int displayNo, int p1, int p2 = 0, int p3 = 0, int p4 = 0, int p5 = 0, char p6 = "")
 {
-  //Because of a complier error - or something I just cannot see - the following has been placed outside the switch
-  if (displayNo = 0)
-    sprintf(displays[0], "Temperatur %d3%c  Valgt       %d2  ", p1, p2);
-  if (displayNo = 1)
-    sprintf(displays[1], "Faerdig kl %d2:%d2Klokken er %d2:%d2", p1, p2, p3, p4);
+  String formatString;
 
   switch (displayNo)
   {
-    case 0:
-      //		sprintf(displays[0], "Temperatur %d3%c  Valgt       %d2  ", p1, p2);
+
+    case 0:      // The operations display 1
+      formatString = "Temperatur %3d  Valgt       %2d  ";
       break;
-    case 1:
-      //		sprintf(displays[1], "Faerdig kl %d2:%d2Klokken er %d2:%d2", p1, p2, p3, p4);
+    case 1:      // The operations display 2
+      //                123456789012  345  1234567890123  456
+      formatString = "Faerdig kl %02d:%02dKlokken er %02d:%02d";
       break;
-    case 2:
-      sprintf(displays[2], "Valgt   %d4 minTilbage %d4 min", p1, p2);
+    case 2:      // The operations display 3
+      formatString = "Valgt   %4d minTilbage %4d min";
       break;
     case 3:      // The prepare display 1
-      sprintf(displays[3], "Vælg temperatur             %d2  ", p1);
+      formatString = "Vaelg temperatur             %2d";
       break;
     case 4:      // The prepare display 2
-      sprintf(displays[4], "Antal min. %d4  Færdig kl %d2:%d2 ", p1, p2, p3);
+      formatString = "Antal min. %4d  Faerdig kl %02d:%02d ";
       break;
-    case 5:       // The config display
-      sprintf(displays[5], "Indstil ur      %d2:%d2 %d2:%d2 %d4 ", p1, p2, p3, p4, p5);
+    case 5:       // The config display 1
+      formatString = "Indstil ur      %02d:%02d %02d.%02d %4d ";
       break;
-    case 6:      // The error display
-      strcpy(displays[6], "Fejl: Kontroller      vandstand ");
+    case 6:       // The config display 2
+      //                       11111111112222222222333
+      //              12345678901234567890123456789012
+      formatString = "Indstil temp    interval %d  ";
+      break;
+    case 7:       // The config display 3
+      formatString = "Indstil ur      %02d:%02d %02d.%02d %4d ";
+      break;
+    case 8:      // The error display
+      strcpy(displays[displayNo], "Fejl: Kontroller      vandstand ");
       break;
     default:
       break;
   }
+  if (displayNo != 6)
+    sprintf(displays[displayNo], formatString.c_str(), p1, p2, p3, p4, p5);
+
+  Serial.print("display ");
+  Serial.print(displayNo);
+  Serial.print(" : ");
+  Serial.println(displays[displayNo]);
 }
+
+
+void ReadTemperatureGo(void*)
+{
+  readTemperature = true;
+  addTaskToQueue(&ReadTemperatureGo, NULL, 500);
+}
+
+int ReadTemperature(int lastTemperature)
+{
+  if ( readTemperature)
+  {
+    readTemperature = false;
+    return 5;
+  }
+  else
+    return lastTemperature;
+}
+
+void ReadWaterlevelGo(void*)
+{
+  readWaterlevel = true;
+  addTaskToQueue(&ReadWaterlevelGo, NULL, 500);
+}
+
+int ReadWaterlevel(int lastWaterlevel)
+{
+  if ( readWaterlevel)
+  {
+    readWaterlevel = false;
+    return 5;
+  }
+  else
+    return lastWaterlevel;
+}
+
+void ReadClockGo(void*)
+{
+  readClock = true;
+  addTaskToQueue(&ReadClockGo, NULL, 1000);
+}
+
+dateTime ReadClock(dateTime lastDateTime)
+{
+  if (readClock)
+  {
+    readClock = false;
+    return getDateTime("da");
+  }
+  else
+    return lastDateTime;
+}
+
+void DisplayRoutineGo(void*)
+{
+  displayStuff = true;
+  addTaskToQueue(&DisplayRoutineGo, NULL, 1000);
+}
+
+void DisplayRoutine()
+{
+  if (displayStuff)
+  {
+
+    displayActive = true;
+    if ((programState == 2) & (showCount < showDelay))
+    {
+      int dispPtr = operationDisplays[currentDisplay];
+
+      String toDisplay(displays[dispPtr]);
+      WriteString(toDisplay);
+      showCount++;
+    }
+    if (showCount == showDelay)
+    {
+      showCount = 0;
+      currentDisplay++;
+      if (currentDisplay >= (int)(sizeof(operationDisplays) / sizeof(int)))
+        currentDisplay = 0;
+    }
+
+    displayStuff = false;
+  }
+}
+
 void setGreen() {
   analogWrite(redPort, 0);
   analogWrite(greenPort, 100);
@@ -98,77 +203,9 @@ void setRed()
   analogWrite(greenPort, 0);
   analogWrite(bluePort, 0);
 }
-void DisplayRoutine()
-{ Serial.print( "in Print: programState ");
-  Serial.println( programState);
 
-  if ((programState == 2) & (showCount < showDelay))
-  {
-    Serial.print( "in Print: showCount ");
-    Serial.println( showCount);
-    Serial.print( "in Print: currentDisplay ");
-    Serial.print( currentDisplay);
-    int dispPtr = operationDisplays[currentDisplay];
-    Serial.print( " dispPtr ");
-    Serial.println( dispPtr);
-    Serial.print( "displays[dispPtr] ");
-    Serial.print( displays[dispPtr]);
-    String toDisplay(displays[dispPtr]);
-    Serial.print( "in Print: toDisplay ");
-    Serial.println(toDisplay);
-    WriteString(toDisplay);
-    showCount++;
-  }
-  if (showCount == showDelay)
-  {
-    showCount = 0;
-    currentDisplay++;
-    if (currentDisplay > (int)(sizeof(operationDisplays) / sizeof(int)))
-      currentDisplay = 0;
-  }
-  Serial.print( "end Print: showCount ");
-  Serial.println( showCount);
-  Serial.print( " currentDisplay ");
-  Serial.println( currentDisplay);
-}
-void setup()
+int StateOfProgram()
 {
-  //	// put your setup code here, to run once:
-  Serial.begin(9600);
-
-  //Set up Input and output
-  pinMode(stateButton, INPUT);
-  digitalWrite(stateButton, LOW);
-  pinMode(bluePort, OUTPUT);
-  pinMode(greenPort, OUTPUT);
-  pinMode(redPort, OUTPUT);
-  pinMode(btPressPort, OUTPUT);
-  //
-  //	//Set up display
-  DisplayInitialize();
-  //	delay(500);
-  //	//Setup "screens"
-  for (size_t i = 0; i < 7; i++)
-  {
-    SousVideDisplayUpdate(i, 0);
-  }
-  	WriteString("Hu hej hvor det går");
-  //
-  //	//Setup Timer
-  //// Timer1.initialize(10000000); // set a timer of length 100000 microseconds
-  ////
-  //Timer1.attachInterrupt(DisplayRoutine); // attach the service routine here
-  //
-  //	//Set up remote control
-  //	//Set up thermometer
-  //	//Set up relay
-  //	//Set up pump
-  //	//Set up time
-  //	//Set up alarm
-  //	//Set up buttons  //config, perpare
-  //	setGreen();
-}
-void loop() {
   // State control
   bStateState = digitalRead(stateButton);
   //  Serial.println(bStateState, HEX);
@@ -179,7 +216,7 @@ void loop() {
 
   if (!lastReadHigh & bStateState == HIGH)
   {
-    Serial.print("In action ");
+    //Serial.print("In action ");
     lastReadHigh = true;
     doStuff = true;
     if (programState == 1)  // Prepare Mode
@@ -194,8 +231,8 @@ void loop() {
     {
       programState = 1;
     }
-    Serial.print("programState ");
-    Serial.println(programState);
+    //		Serial.print("programState ");
+    //		Serial.println(programState);
 
   }
   else if (bStateState == LOW & lastReadHigh)
@@ -203,22 +240,63 @@ void loop() {
     lastReadHigh = false;
   }
 
+  return programState;
+}
+
+void setup()
+{
+  //	// put your setup code here, to run once:
+  Serial.begin(9600);
+
+  //Set up Input and output
+  pinMode(stateButton, INPUT);
+  digitalWrite(stateButton, LOW);
+  pinMode(bluePort, OUTPUT);
+  pinMode(greenPort, OUTPUT);
+  pinMode(redPort, OUTPUT);
+  pinMode(btPressPort, OUTPUT);
+
+  //Set up display
+  DisplayInitialize();
+  //Setup "screens"
+  for (size_t i = 0; i < 7; i++)
+  {
+    SousVideDisplayUpdate(i, 0);
+  }
+  WriteString("Ready");
+
+  //Setup Timer
+  initializeTimer(5, 100);
+  addTaskToQueue(&DisplayRoutineGo, NULL, 1000);
+
+  //Set up remote control
+  //Set up Waterlevel
+  initializeWaterlevel(5);
+  addTaskToQueue(&ReadWaterlevelGo, NULL, 500);
+  //Set up thermometer
+  initializeThermometer(5, 100);
+  addTaskToQueue(&ReadTemperatureGo, NULL, 1000);
+  //Set up relay
+  //Set up pump
+  //Set up time
+  initializeClock();
+  addTaskToQueue(&ReadClockGo, NULL, 1000);
+  //Set up alarm
+}
+void loop() {
+
   if (doStuff)
   {
-    switch (programState)
+    switch (StateOfProgram())
     {
       case 1:  // Prepare
         setRed();
         break;
       case 2:  // Operation
         setGreen();
-        for (int i = 0; i < 5; i++)
-{
-DisplayRoutine();
-delay(5);
-}
+
         break;
-      case 3: //
+      case 3: // Configuration
         setBlue();
         break;
       default:
@@ -234,6 +312,17 @@ delay(5);
   //   Accept final_temperature
   //   Accept time
   //  else
+
+  DisplayRoutine();
+  now = ReadClock(now);
+  currentTemp = ReadTemperature(currentTemp);
+  currentWaterlevel = ReadWaterlevel(currentWaterlevel);
+  //	ReadTemperature();
+
+
+  //SousVideDisplayUpdate(1, 0, 0, CurrentHour, CurrentMinutes);
+
+
   //   if HeatMode
   //    if current temp < final_temperature + temperatureInterval
   //      HeatMode = false
@@ -251,3 +340,4 @@ delay(5);
 
 
 }
+
